@@ -1,4 +1,5 @@
 import { MapPin, ExternalLink } from "lucide-react";
+import SpotPhoto from "@/components/trip/SpotPhoto";
 
 const PROVIDER_LABELS = {
     google: "Google Maps",
@@ -19,6 +20,7 @@ export default function SpotCard({ spot, view }) {
                 gap: view === "grid" ? "10px" : "20px",
             }}
         >
+            <SpotPhoto spot={spot} width={view === "grid" ? "100%" : "80px"} height={view === "grid" ? "140px" : "80px"} />
             <div style={{ flex: view === "list" ? "0 0 220px" : undefined, minWidth: 0 }}>
                 <div
                     style={{
