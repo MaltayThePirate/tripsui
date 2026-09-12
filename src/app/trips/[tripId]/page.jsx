@@ -10,6 +10,7 @@ import { formatShortDate } from "@/lib/format";
 import PageHeader from "@/components/layout/PageHeader";
 import AddMenuButton from "@/components/trip/AddMenuButton";
 import AddSpotForm from "@/components/trip/AddSpotForm";
+import SpotCard from "@/components/trip/SpotCard";
 
 export default function TripHomePage({ params }) {
   const { tripId } = useParams();
@@ -59,8 +60,15 @@ export default function TripHomePage({ params }) {
   }
 
   const trip = tripQuery.data;
-  const spots = spotsQuery.data ?? [];
+
   const dateRangeLabel = `${formatShortDate(trip.start_date)}–${formatShortDate(trip.end_date)}`;
+  const spots = spotsQuery.data ?? [];
+  const filteredSpots = spots.filter(
+    (spot) =>
+      search.trim() === "" ||
+      spot.name.toLowerCase().includes(search.toLowerCase()) ||
+      (spot.address || "").toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div style={{ padding: "28px 24px 60px" }}>
@@ -191,7 +199,7 @@ export default function TripHomePage({ params }) {
           </div>
         </div>
 
-        {spots.length === 0 && (
+        {spots.length === 0 ? (
           <div style={{ textAlign: "center", padding: "70px 24px", border: "1.5px dashed var(--color-border)", borderRadius: "14px", background: "#FFFFFF" }}>
             <div style={{ fontFamily: "var(--font-fraunces), serif", fontWeight: 600, fontSize: "20px", color: "var(--color-ink)", marginBottom: "8px" }}>
               Your Trip is empty
@@ -205,6 +213,22 @@ export default function TripHomePage({ params }) {
               onSelect={handleSelect}
               size="large"
             />
+          </div>
+        ) : filteredSpots.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "40px 24px", color: "var(--color-muted)", fontFamily: "var(--font-inter), sans-serif", fontSize: "13.5px" }}>
+            No Spots match "{search}".
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: view === "grid" ? "repeat(auto-fill, minmax(270px, 1fr))" : "1fr",
+              gap: "12px",
+            }}
+          >
+            {filteredSpots.map((spot) => (
+              <SpotCard key={spot.id} spot={spot} view={view} />
+            ))}
           </div>
         )}
       </div>

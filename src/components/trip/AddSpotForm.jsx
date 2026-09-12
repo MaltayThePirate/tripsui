@@ -5,14 +5,16 @@ import { apiPost } from "@/lib/api";
 
 export default function AddSpotForm({ tripId, onClose }) {
   const [url, setUrl] = useState("");
+  const [note, setNote] = useState("");
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (sourceUrl) =>
-      apiPost(`/trips/${tripId}/spots`, { spot: { source_url: sourceUrl } }),
+    mutationFn: ({ sourceUrl, note }) =>
+      apiPost(`/trips/${tripId}/spots`, { spot: { source_url: sourceUrl, note } }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["trip", tripId, "spots"] });
       setUrl("");
+      setNote("");
       onClose();
     },
   });
@@ -20,7 +22,7 @@ export default function AddSpotForm({ tripId, onClose }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!url.trim()) return;
-    mutation.mutate(url.trim());
+    mutation.mutate({ sourceUrl: url.trim(), note: note.trim() });
   };
 
   return (
@@ -76,6 +78,26 @@ export default function AddSpotForm({ tripId, onClose }) {
             color: "#1F2E35",
             marginBottom: "10px",
             boxSizing: "border-box",
+          }}
+        />
+
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Optional note — reservation details, why you added it, etc."
+          disabled={mutation.isPending}
+          rows={3}
+          style={{
+            width: "100%",
+            border: "1px solid var(--color-border)",
+            borderRadius: "8px",
+            padding: "10px 12px",
+            fontFamily: "var(--font-inter), sans-serif",
+            fontSize: "13.5px",
+            color: "var(--color-ink)",
+            marginBottom: "10px",
+            boxSizing: "border-box",
+            resize: "vertical",
           }}
         />
 
