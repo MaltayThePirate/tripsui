@@ -42,7 +42,7 @@ export default function TripHomePage({ params }) {
     setNote(label);
   };
 
-  if (tripQuery.isLoading) {
+  if (tripQuery.isLoading || spotsQuery.isLoading) {
     return (
       <div style={{ minHeight: "60vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "12px" }}>
         <div className="spinner" />
