@@ -10,6 +10,7 @@ import { formatShortDate } from "@/lib/format";
 import PageHeader from "@/components/layout/PageHeader";
 import AddMenuButton from "@/components/trip/AddMenuButton";
 import AddSpotForm from "@/components/trip/AddSpotForm";
+import AddCategoryForm from "@/components/trip/AddCategoryForm";
 import SpotCard from "@/components/trip/SpotCard";
 
 export default function TripHomePage({ params }) {
@@ -21,6 +22,7 @@ export default function TripHomePage({ params }) {
   const [emptyMenuOpen, setEmptyMenuOpen] = useState(false);
   const [note, setNote] = useState(null);
   const [showAddSpotForm, setShowAddSpotForm] = useState(false);
+  const [showAddCategoryForm, setShowAddCategoryForm] = useState(false);
 
   const tripQuery = useQuery({
     queryKey: ["trip", tripId],
@@ -37,6 +39,10 @@ export default function TripHomePage({ params }) {
     setEmptyMenuOpen(false);
     if (key === "spot") {
       setShowAddSpotForm(true);
+      return;
+    }
+    if (key === "category") {
+      setShowAddCategoryForm(true);
       return;
     }
     setNote(label);
@@ -100,6 +106,29 @@ export default function TripHomePage({ params }) {
               style={{ width: "100%", maxWidth: "420px" }}
             >
               <AddSpotForm tripId={tripId} onClose={() => setShowAddSpotForm(false)} />
+            </div>
+          </div>
+        )}
+
+        {showAddCategoryForm && (
+          <div
+            onClick={() => setShowAddCategoryForm(false)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(31, 46, 53, 0.4)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 100,
+              padding: "24px",
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{ width: "100%", maxWidth: "420px" }}
+            >
+              <AddCategoryForm tripId={tripId} onClose={() => setShowAddCategoryForm(false)} />
             </div>
           </div>
         )}

@@ -1,29 +1,52 @@
+"use client";
+
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
-import { apiPost } from "@/lib/api";
+import { apiGet, apiPost } from "@/lib/api";
 
 export default function AddSpotForm({ tripId, onClose }) {
   const [url, setUrl] = useState("");
   const [note, setNote] = useState("");
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
   const queryClient = useQueryClient();
 
+  const categoriesQuery = useQuery({
+    queryKey: ["trip", tripId, "categories"],
+    queryFn: () => apiGet(`/trips/${tripId}/categories`),
+  });
+
   const mutation = useMutation({
-    mutationFn: ({ sourceUrl, note }) =>
-      apiPost(`/trips/${tripId}/spots`, { spot: { source_url: sourceUrl, note } }),
+    mutationFn: ({ sourceUrl, note, categoryIds }) =>
+      apiPost(`/trips/${tripId}/spots`, {
+        spot: { source_url: sourceUrl, note, category_ids: categoryIds },
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["trip", tripId, "spots"] });
       setUrl("");
       setNote("");
+      setSelectedCategoryIds([]);
       onClose();
     },
   });
 
+  const toggleCategory = (catId) => {
+    setSelectedCategoryIds((prev) =>
+      prev.includes(catId) ? prev.filter((id) => id !== catId) : [...prev, catId]
+    );
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!url.trim()) return;
-    mutation.mutate({ sourceUrl: url.trim(), note: note.trim() });
+    mutation.mutate({
+      sourceUrl: url.trim(),
+      note: note.trim(),
+      categoryIds: selectedCategoryIds,
+    });
   };
+
+  const categories = categoriesQuery.data || [];
 
   return (
     <div
@@ -100,6 +123,61 @@ export default function AddSpotForm({ tripId, onClose }) {
             resize: "vertical",
           }}
         />
+
+        {categories.length > 0 && (
+          <div style={{ marginBottom: "14px" }}>
+            <label
+              style={{
+                display: "block",
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: "10.5px",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                color: "#8A8270",
+                marginBottom: "6px",
+              }}
+            >
+              Categories
+            </label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+              {categories.map((cat) => {
+                const selected = selectedCategoryIds.includes(cat.id);
+                return (
+                  <button
+                    type="button"
+                    key={cat.id}
+                    onClick={() => toggleCategory(cat.id)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      background: selected ? cat.color : "#F4EFE6",
+                      color: selected ? "#FFFFFF" : "#1F2E35",
+                      border: `1px solid ${selected ? cat.color : "#E4DDCE"}`,
+                      borderRadius: "6px",
+                      padding: "5px 10px",
+                      fontFamily: "var(--font-inter), sans-serif",
+                      fontSize: "12px",
+                      fontWeight: selected ? 500 : 400,
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: "7px",
+                        height: "7px",
+                        borderRadius: "50%",
+                        background: selected ? "#FFFFFF" : cat.color,
+                      }}
+                    />
+                    {cat.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {mutation.isError && (
           <div
