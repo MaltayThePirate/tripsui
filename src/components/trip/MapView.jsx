@@ -95,10 +95,11 @@ export default function MapView({ trip, spots = [] }) {
     return tripCategories.map((cat) => cat.name);
   }, [tripCategories]);
 
-  // Infer trip dates (inclusive) from trip start_date and end_date
+  // Infer trip dates (inclusive) from trip start_date and end_date.
+  // Trip start_date and end_date are required fields. If missing, treat as unexpected error.
   const tripDates = useMemo(() => {
     if (!trip?.start_date || !trip?.end_date) {
-      return ["Jun 10", "Jun 11", "Jun 12", "Jun 13", "Jun 14"];
+      return null;
     }
     const dates = [];
     const curr = new Date(trip.start_date);
@@ -108,8 +109,16 @@ export default function MapView({ trip, spots = [] }) {
       dates.push(formatted);
       curr.setDate(curr.getDate() + 1);
     }
-    return dates.length > 0 ? dates : ["Jun 10"];
+    return dates.length > 0 ? dates : null;
   }, [trip]);
+
+  if (!tripDates) {
+    return (
+      <div style={{ padding: "40px 24px", color: "var(--color-rust)", fontFamily: "var(--font-inter), sans-serif", fontSize: "14px", textAlign: "center" }}>
+        Unexpected error: Trip start and end dates are required.
+      </div>
+    );
+  }
 
   const [selectedDate, setSelectedDate] = useState(tripDates[0] || "Jun 10");
 
