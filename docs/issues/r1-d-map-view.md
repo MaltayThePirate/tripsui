@@ -3,7 +3,7 @@
 - **Product Area:** Area D (Map View)
 - **User Story:** R1-D-01
 - **Functional Requirement:** FR-5
-- **Status:** ⬜ Not Started
+- **Status:** ✅ Completed
 
 ## User Story
 As a Trip Planner, I can view all my Trip's Spots and relevant Accommodations together on a map, so I can visually judge which Spots cluster together.
