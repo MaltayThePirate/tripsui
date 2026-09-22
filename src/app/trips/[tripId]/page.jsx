@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Search, LayoutGrid, List as ListIcon, Info, X } from "lucide-react";
+import { Search, LayoutGrid, List as ListIcon, Map, Info, X } from "lucide-react";
+import MapView from "@/components/trip/MapView";
 import { apiGet } from "@/lib/api";
 import { formatShortDate } from "@/lib/format";
 
@@ -17,7 +18,7 @@ export default function TripHomePage({ params }) {
   const { tripId } = useParams();
 
   const [search, setSearch] = useState("");
-  const [view, setView] = useState("grid");
+  const [view, setView] = useState("grid"); // "grid", "list", "map"
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const [emptyMenuOpen, setEmptyMenuOpen] = useState(false);
   const [note, setNote] = useState(null);
@@ -225,6 +226,21 @@ export default function TripHomePage({ params }) {
             >
               <ListIcon size={15} strokeWidth={2} />
             </button>
+            <button
+              onClick={() => setView("map")}
+              aria-label="Map view"
+              style={{
+                border: "none",
+                background: view === "map" ? "var(--color-ink)" : "transparent",
+                color: view === "map" ? "var(--color-parchment)" : "var(--color-muted)",
+                borderRadius: "6px",
+                padding: "7px 10px",
+                cursor: "pointer",
+                display: "flex",
+              }}
+            >
+              <Map size={15} strokeWidth={2} />
+            </button>
           </div>
         </div>
 
@@ -247,6 +263,8 @@ export default function TripHomePage({ params }) {
           <div style={{ textAlign: "center", padding: "40px 24px", color: "var(--color-muted)", fontFamily: "var(--font-inter), sans-serif", fontSize: "13.5px" }}>
             No Spots match "{search}".
           </div>
+        ) : view === "map" ? (
+          <MapView trip={trip} spots={filteredSpots} />
         ) : (
           <div
             style={{
