@@ -1,21 +1,14 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useMemo } from "react";
-import { MapPin, Home, Info, X, Plus, Check, Users, User } from "lucide-react";
-
-const CATEGORY_COLORS = {
-  "Places to Eat": "#B8462F",
-  "Landmarks": "#2B6E6E",
-  "Nightlife": "#7A4FA3",
-  "Nature": "#3E7A3E",
-  "Shopping": "#C98A2E",
-  "Coffee": "#724F27",
-};
+import { useQuery } from "@tanstack/react-query";
+import { MapPin, Home, Info, X, Plus, Check } from "lucide-react";
+import { apiGet } from "@/lib/api";
 
 const STAMP_TILT = -1.5;
 
-export function StampBadge({ label }) {
-  const color = CATEGORY_COLORS[label] || "#2B6E6E";
+export function StampBadge({ label, categoryColors }) {
+  const color = categoryColors[label] || "#2B6E6E";
   return (
     <span
       style={{
@@ -39,128 +32,110 @@ export function StampBadge({ label }) {
   );
 }
 
-export function AddToPlanControl({ date, inShared, inPersonal, isOpen, onToggleOpen, onToggleShared, onTogglePersonal, compact }) {
+export function AddToPlanControl({ date, added, onToggle, compact }) {
   return (
     <div style={{ position: "relative", flexShrink: 0 }}>
+      {/* TODO: integrate with Day Plan API once Day Plan user story is implemented */}
       <button
-        onClick={onToggleOpen}
-        aria-label="Add to Plan"
-        title="Add to Plan"
+        onClick={onToggle}
+        aria-label={added ? "Remove from plan" : "Add to plan"}
+        title={added ? `Added to plan for ${date}` : `Add to plan for ${date}`}
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           width: compact ? "26px" : "30px",
           height: compact ? "26px" : "30px",
-          border: "1px solid " + (inShared || inPersonal ? "#2B6E6E" : "#E4DDCE"),
-          background: inShared || inPersonal ? "#2B6E6E" : "#FFFFFF",
-          color: inShared || inPersonal ? "#FAF7F1" : "#1F2E35",
+          border: "1px solid " + (added ? "#2B6E6E" : "#E4DDCE"),
+          background: added ? "#2B6E6E" : "#FFFFFF",
+          color: added ? "#FAF7F1" : "#1F2E35",
           borderRadius: "50%",
           cursor: "pointer",
           padding: 0,
           flexShrink: 0,
         }}
       >
-        <Plus size={compact ? 14 : 16} strokeWidth={2.5} />
+        {added ? (
+          <Check size={compact ? 13 : 15} strokeWidth={2.5} />
+        ) : (
+          <Plus size={compact ? 14 : 16} strokeWidth={2.5} />
+        )}
       </button>
-
-      {isOpen && (
-        <div
-          style={{
-            position: "absolute",
-            top: "calc(100% + 6px)",
-            right: 0,
-            background: "#FFFFFF",
-            border: "1px solid #E4DDCE",
-            borderRadius: "10px",
-            boxShadow: "0 4px 14px rgba(31,46,53,0.18)",
-            padding: "8px",
-            width: "190px",
-            zIndex: 30,
-          }}
-        >
-          <div
-            style={{
-              fontFamily: "var(--font-ibm-plex-mono), monospace",
-              fontSize: "10px",
-              letterSpacing: "0.05em",
-              textTransform: "uppercase",
-              color: "#A99F8B",
-              padding: "2px 6px 6px",
-            }}
-          >
-            Add to plan for {date}
-          </div>
-          <button
-            onClick={onToggleShared}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "7px",
-              width: "100%",
-              border: "none",
-              background: "none",
-              color: "#1F2E35",
-              fontFamily: "var(--font-inter), sans-serif",
-              fontSize: "12.5px",
-              padding: "7px 6px",
-              borderRadius: "6px",
-              cursor: "pointer",
-              textAlign: "left",
-            }}
-          >
-            <Users size={13} strokeWidth={2} />
-            Shared Day Plan
-            <span style={{ marginLeft: "auto", display: "flex" }}>
-              {inShared && <Check size={13} strokeWidth={2.5} color="#2B6E6E" />}
-            </span>
-          </button>
-          <button
-            onClick={onTogglePersonal}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "7px",
-              width: "100%",
-              border: "none",
-              background: "none",
-              color: "#1F2E35",
-              fontFamily: "var(--font-inter), sans-serif",
-              fontSize: "12.5px",
-              padding: "7px 6px",
-              borderRadius: "6px",
-              cursor: "pointer",
-              textAlign: "left",
-            }}
-          >
-            <User size={13} strokeWidth={2} />
-            My Day Plan
-            <span style={{ marginLeft: "auto", display: "flex" }}>
-              {inPersonal && <Check size={13} strokeWidth={2.5} color="#2B6E6E" />}
-            </span>
-          </button>
-        </div>
-      )}
     </div>
   );
 }
 
-export default function MapView({ spots = [], accommodations = [] }) {
+export default function MapView({ trip, spots = [] }) {
+  const tripId = trip?.id;
   const mapRef = useRef(null);
   const [map, setMap] = useState(null);
   const markersRef = useRef([]);
 
   const [activeCategories, setActiveCategories] = useState([]);
-  const [selectedDate, setSelectedDate] = useState("Jun 10");
+  
+  // Fetch categories dynamically from database
+  const categoriesQuery = useQuery({
+    queryKey: ["trip", tripId, "categories"],
+    queryFn: () => apiGet(`/trips/${tripId}/categories`),
+    enabled: !!tripId,
+  });
+
+  const tripCategories = categoriesQuery.data || [];
+  
+  // Build lowercase categoryColors and allCategories dynamically from fetched categories
+  const categoryColors = useMemo(() => {
+    const map = {};
+    tripCategories.forEach((cat) => {
+      map[cat.name] = cat.color || "#2B6E6E";
+    });
+    return map;
+  }, [tripCategories]);
+
+  const allCategories = useMemo(() => {
+    return tripCategories.map((cat) => cat.name);
+  }, [tripCategories]);
+
+  // Infer trip dates (inclusive) from trip start_date and end_date
+  const tripDates = useMemo(() => {
+    if (!trip?.start_date || !trip?.end_date) {
+      return ["Jun 10", "Jun 11", "Jun 12", "Jun 13", "Jun 14"];
+    }
+    const dates = [];
+    const curr = new Date(trip.start_date);
+    const end = new Date(trip.end_date);
+    while (curr <= end) {
+      const formatted = curr.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      dates.push(formatted);
+      curr.setDate(curr.getDate() + 1);
+    }
+    return dates.length > 0 ? dates : ["Jun 10"];
+  }, [trip]);
+
+  const [selectedDate, setSelectedDate] = useState(tripDates[0] || "Jun 10");
+
+  // Keep selectedDate valid if tripDates changes
+  useEffect(() => {
+    if (tripDates.length > 0 && !tripDates.includes(selectedDate)) {
+      setSelectedDate(tripDates[0]);
+    }
+  }, [tripDates, selectedDate]);
+
   const [hoveredSpotId, setHoveredSpotId] = useState(null);
   const [selectedSpotId, setSelectedSpotId] = useState(null);
   const [activeAccommodationId, setActiveAccommodationId] = useState(null);
 
-  const [sharedByDate, setSharedByDate] = useState({});
-  const [personalByDate, setPersonalByDate] = useState({});
+  // Personal day plan mapping by date: { [date]: [spotId, ...] }
+  const [planByDate, setPlanByDate] = useState({});
 
-  const [mapMenuOpen, setMapMenuOpen] = useState(false);
-  const [listMenuOpenId, setListMenuOpenId] = useState(null);
+  const togglePlan = (id, date) => {
+    setPlanByDate((prev) => {
+      const list = prev[date] || [];
+      const next = list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
+      return { ...prev, [date]: next };
+    });
+  };
+
+  const isAddedToPlan = (id, date) => (planByDate[date] || []).includes(id);
 
   // Initialize Google Maps
   useEffect(() => {
@@ -221,15 +196,13 @@ export default function MapView({ spots = [], accommodations = [] }) {
     });
   }, [spots]);
 
+  // TODO: Accommodation backend API integration
   const formattedAccommodations = useMemo(() => {
-    return accommodations.map((a) => ({
+    return (trip?.accommodations || []).map((a) => ({
       ...a,
-      dateRange: ["Jun 10", "Jun 11", "Jun 12", "Jun 13", "Jun 14"],
+      dateRange: tripDates,
     }));
-  }, [accommodations]);
-
-  const TRIP_DATES = ["Jun 10", "Jun 11", "Jun 12", "Jun 13", "Jun 14"];
-  const ALL_CATEGORIES = Object.keys(CATEGORY_COLORS);
+  }, [trip, tripDates]);
 
   const toggleCategory = (cat) => {
     setActiveCategories((prev) =>
@@ -254,23 +227,6 @@ export default function MapView({ spots = [], accommodations = [] }) {
 
   const selectedSpot = selectedSpotId ? formattedSpots.find((s) => s.id === selectedSpotId) : null;
 
-  const isInShared = (id, date) => (sharedByDate[date] || []).includes(id);
-  const isInPersonal = (id, date) => (personalByDate[date] || []).includes(id);
-  const toggleShared = (id, date) => {
-    setSharedByDate((prev) => {
-      const list = prev[date] || [];
-      const next = list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
-      return { ...prev, [date]: next };
-    });
-  };
-  const togglePersonal = (id, date) => {
-    setPersonalByDate((prev) => {
-      const list = prev[date] || [];
-      const next = list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
-      return { ...prev, [date]: next };
-    });
-  };
-
   // Render styled markers on Google Map instance
   useEffect(() => {
     if (!map || !window.google || !window.google.maps) return;
@@ -285,7 +241,7 @@ export default function MapView({ spots = [], accommodations = [] }) {
       if (spot.latitude && spot.longitude) {
         const position = { lat: spot.latitude, lng: spot.longitude };
         const cat = spot.categories[0] || "Landmarks";
-        const color = CATEGORY_COLORS[cat] || "#2B6E6E";
+        const color = categoryColors[cat] || "#2B6E6E";
 
         const svgMarker = {
           path: window.google.maps.SymbolPath.CIRCLE,
@@ -305,7 +261,6 @@ export default function MapView({ spots = [], accommodations = [] }) {
 
         marker.addListener("click", () => {
           setSelectedSpotId(spot.id === selectedSpotId ? null : spot.id);
-          setMapMenuOpen(false);
         });
 
         markersRef.current.push(marker);
@@ -349,7 +304,7 @@ export default function MapView({ spots = [], accommodations = [] }) {
     if (hasPoints) {
       map.fitBounds(bounds);
     }
-  }, [map, visibleSpots, relevantAccommodations, effectiveActiveId, selectedSpotId]);
+  }, [map, visibleSpots, relevantAccommodations, effectiveActiveId, selectedSpotId, categoryColors]);
 
   return (
     <div style={{ width: "100%" }}>
@@ -364,9 +319,9 @@ export default function MapView({ spots = [], accommodations = [] }) {
 
       {/* Category filter chips */}
       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "18px", alignItems: "center" }}>
-        {ALL_CATEGORIES.map((cat) => {
+        {allCategories.map((cat) => {
           const active = activeCategories.includes(cat);
-          const color = CATEGORY_COLORS[cat];
+          const color = categoryColors[cat] || "#2B6E6E";
           return (
             <button
               key={cat}
@@ -472,7 +427,7 @@ export default function MapView({ spots = [], accommodations = [] }) {
                 background: "#FFFFFF",
               }}
             >
-              {TRIP_DATES.map((date) => (
+              {tripDates.map((date) => (
                 <option key={date} value={date}>
                   {date}
                 </option>
@@ -600,18 +555,14 @@ export default function MapView({ spots = [], accommodations = [] }) {
 
               <div style={{ display: "flex", gap: "5px", flexWrap: "wrap", marginBottom: "8px" }}>
                 {selectedSpot.categories.map((c) => (
-                  <StampBadge key={c} label={c} />
+                  <StampBadge key={c} label={c} categoryColors={categoryColors} />
                 ))}
               </div>
 
               <AddToPlanControl
                 date={selectedDate}
-                inShared={isInShared(selectedSpot.id, selectedDate)}
-                inPersonal={isInPersonal(selectedSpot.id, selectedDate)}
-                isOpen={mapMenuOpen}
-                onToggleOpen={() => setMapMenuOpen((v) => !v)}
-                onToggleShared={() => toggleShared(selectedSpot.id, selectedDate)}
-                onTogglePersonal={() => togglePersonal(selectedSpot.id, selectedDate)}
+                added={isAddedToPlan(selectedSpot.id, selectedDate)}
+                onToggle={() => togglePlan(selectedSpot.id, selectedDate)}
               />
             </div>
           )}
@@ -642,7 +593,6 @@ export default function MapView({ spots = [], accommodations = [] }) {
                   onMouseEnter={() => setHoveredSpotId(spot.id)}
                   onMouseLeave={() => setHoveredSpotId(null)}
                   onClick={() => {
-                    setMapMenuOpen(false);
                     setSelectedSpotId(spot.id === selectedSpotId ? null : spot.id);
                   }}
                   style={{
@@ -660,7 +610,7 @@ export default function MapView({ spots = [], accommodations = [] }) {
                       width: "9px",
                       height: "9px",
                       borderRadius: "50%",
-                      background: CATEGORY_COLORS[spot.categories[0]] || "#2B6E6E",
+                      background: categoryColors[spot.categories[0]] || "#2B6E6E",
                       flexShrink: 0,
                     }}
                   />
@@ -682,12 +632,8 @@ export default function MapView({ spots = [], accommodations = [] }) {
                   <div onClick={(e) => e.stopPropagation()}>
                     <AddToPlanControl
                       date={selectedDate}
-                      inShared={isInShared(spot.id, selectedDate)}
-                      inPersonal={isInPersonal(spot.id, selectedDate)}
-                      isOpen={listMenuOpenId === spot.id}
-                      onToggleOpen={() => setListMenuOpenId((cur) => (cur === spot.id ? null : spot.id))}
-                      onToggleShared={() => toggleShared(spot.id, selectedDate)}
-                      onTogglePersonal={() => togglePersonal(spot.id, selectedDate)}
+                      added={isAddedToPlan(spot.id, selectedDate)}
+                      onToggle={() => togglePlan(spot.id, selectedDate)}
                       compact
                     />
                   </div>
