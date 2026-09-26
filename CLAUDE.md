@@ -36,3 +36,18 @@ When working on any issue or feature:
 2. **Pull Requests:** Submit all completed work as a Pull Request targeting `main`.
 3. **High-Level Landing Page Description:** Every PR must include a clear, comprehensive description that acts as an overview and landing page for reviewers, explaining the architectural and functional context of the changes.
 4. **Targeted User Stories:** The PR description must explicitly list all User Stories being addressed by the PR using their release keys (e.g., `R1-A-01`, `R1-B-03`).
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked as local markdown files under `docs/issues/`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Canonical triage roles mapped to repo labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout (`DOMAIN.md`/root docs). See `docs/agents/domain.md`.
+
